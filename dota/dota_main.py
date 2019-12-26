@@ -3,11 +3,15 @@ import bs4 as bs
 from sqlalchemy import create_engine
 import psycopg2
 from dota.dota_match_scraper import DotaMatch
-from dota.dota_helpers import update_team_and_match_db_return_t_id, pandify_basic_match_info
+from dota.dota_helpers import (
+    update_team_and_match_db_return_t_id,
+    pandify_basic_match_info,
+)
 from scrape_helpers import Sess
 from config import DATABASE_URI
-pd.set_option('display.width', 1000)
-pd.set_option('display.max_columns', 50)
+
+pd.set_option("display.width", 1000)
+pd.set_option("display.max_columns", 50)
 
 BASE_URL = "https://www.dotabuff.com"
 DB_URL = f"{DATABASE_URI}dota"
@@ -17,8 +21,7 @@ ENGINE = create_engine(DB_URL)
 
 
 def get_max_match_id():
-    cursor.execute(
-        f"SELECT max(match_id) FROM matches ")
+    cursor.execute(f"SELECT max(match_id) FROM matches ")
     return cursor.fetchone()[0]
 
 
@@ -26,8 +29,7 @@ def get_max_match_id():
 def scrape_pending_matches():
 
     pending_matches = pd.read_sql_table("dota_matches", ENGINE)
-    pending_matches =\
-        pending_matches.loc[pending_matches["scraped_page"] == False, :]
+    pending_matches = pending_matches.loc[pending_matches["scraped_page"] == False, :]
 
     max_match_id = get_max_match_id()
     c = Sess()
@@ -37,8 +39,9 @@ def scrape_pending_matches():
         link = row["match_link"]
         row_id = row["row_id"]
         # skip already parsed matches might have been in multiple times
-        if link in list(pd.read_sql_table("matches", con=ENGINE)[
-                            "match_link"].unique()):
+        if link in list(
+            pd.read_sql_table("matches", con=ENGINE)["match_link"].unique()
+        ):
             cursor.execute(
                 f"UPDATE dota_matches SET scraped_page ="
                 f" {True} WHERE row_id = {row_id}"
@@ -57,8 +60,7 @@ def scrape_pending_matches():
             )
             conn.commit()
             continue
-        assert resp.status_code == 200,\
-            f"Failed {link} with code {resp.status_code}"
+        assert resp.status_code == 200, f"Failed {link} with code {resp.status_code}"
 
         try:
             match = DotaMatch(bs.BeautifulSoup(resp.text, "html5lib"))
@@ -70,15 +72,13 @@ def scrape_pending_matches():
         try:
             # dis is horribuble
             # actually dont know what it does :D
-            t1_id =\
-                update_team_and_match_db_return_t_id(match.t1["link"],
-                                                     match.t1["name"],
-                                                     cursor, conn)
+            t1_id = update_team_and_match_db_return_t_id(
+                match.t1["link"], match.t1["name"], cursor, conn
+            )
 
-            t2_id = \
-                update_team_and_match_db_return_t_id(match.t2["link"],
-                                                     match.t2["name"],
-                                                     cursor, conn)
+            t2_id = update_team_and_match_db_return_t_id(
+                match.t2["link"], match.t2["name"], cursor, conn
+            )
 
             match_overview["t1_id"] = t1_id
             match_overview["t2_id"] = t2_id
@@ -100,12 +100,11 @@ def scrape_pending_matches():
             t2_stats["match_id"] = match_id
             t2_stats["team_id"] = t2_id
 
-            match_overview.to_sql("matches",
-                                  con=ENGINE, index=False, if_exists='append')
-            t1_stats.to_sql("stats", con=ENGINE, index=False,
-                            if_exists='append')
-            t2_stats.to_sql("stats", con=ENGINE, index=False,
-                            if_exists='append')
+            match_overview.to_sql(
+                "matches", con=ENGINE, index=False, if_exists="append"
+            )
+            t1_stats.to_sql("stats", con=ENGINE, index=False, if_exists="append")
+            t2_stats.to_sql("stats", con=ENGINE, index=False, if_exists="append")
 
             cursor.execute(
                 f"UPDATE dota_matches SET scraped_page ="

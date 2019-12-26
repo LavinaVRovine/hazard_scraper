@@ -3,8 +3,9 @@ import bs4 as bs
 from csgo.csgo_game import CSGOGame
 from helpers.helpers import parse_number
 import datetime
-pd.set_option('display.width', 1000)
-pd.set_option('display.max_columns', 50)
+
+pd.set_option("display.width", 1000)
+pd.set_option("display.max_columns", 50)
 
 BASE_URL = "https://www.hltv.org"
 
@@ -13,6 +14,7 @@ class CSGOMatch:
     """
     Match, ie series of games for one team against other team
     """
+
     def __init__(self, soup, c):
         """
 
@@ -27,9 +29,8 @@ class CSGOMatch:
             raise ValueError
         self.info = self.parse_base_info()
 
-        details_response = c.get(BASE_URL+self.details_link)
-        self.detailed_soup =\
-            bs.BeautifulSoup(details_response.text, "html5lib")
+        details_response = c.get(BASE_URL + self.details_link)
+        self.detailed_soup = bs.BeautifulSoup(details_response.text, "html5lib")
 
     def get_details_url(self):
         """
@@ -62,14 +63,18 @@ class CSGOMatch:
         team_base_info = self.parse_team_base_info(main_banner)
 
         base_match_info = main_banner.find("div", {"class": "timeAndEvent"})
-        unix_time = base_match_info.find("div", {"class": "date"}).get(
-            "data-unix")
+        unix_time = base_match_info.find("div", {"class": "date"}).get("data-unix")
         unix_time = datetime.datetime.fromtimestamp(int(unix_time[:-3]))
         formatted_date = base_match_info.find("div", {"class": "date"}).text
         tournament_link = base_match_info.find("a").get("href")
-        return {**{"unix_time": unix_time, "formatted_date": formatted_date,
-                   "tournament_link": tournament_link},
-                **team_base_info}
+        return {
+            **{
+                "unix_time": unix_time,
+                "formatted_date": formatted_date,
+                "tournament_link": tournament_link,
+            },
+            **team_base_info,
+        }
 
     @staticmethod
     def parse_team_base_info(main_banner):
@@ -80,8 +85,7 @@ class CSGOMatch:
         """
 
         stats = {}
-        for index, team in enumerate(main_banner.find_all(
-                "div", {"class": "team"})):
+        for index, team in enumerate(main_banner.find_all("div", {"class": "team"})):
             t_identifier = f"t{index + 1}_"
 
             team_name = team.find("div", {"class": "teamName"}).text
@@ -92,10 +96,14 @@ class CSGOMatch:
                 won_n_matches = int(team.find("div", {"class": "lost"}).text)
             else:
                 won_n_matches = int(won_n_matches.text)
-            stats = {**stats,
-                     **{f"{t_identifier}name": team_name,
-                        f"{t_identifier}winner": won,
-                        f"{t_identifier}won_n_matches": won_n_matches}}
+            stats = {
+                **stats,
+                **{
+                    f"{t_identifier}name": team_name,
+                    f"{t_identifier}winner": won,
+                    f"{t_identifier}won_n_matches": won_n_matches,
+                },
+            }
         return stats
 
     @staticmethod
@@ -106,8 +114,9 @@ class CSGOMatch:
         :return: list of dicts
         """
         teams = []
-        team_names = lineup_div.find_all("div", {
-            "class": "box-headline flex-align-center"})
+        team_names = lineup_div.find_all(
+            "div", {"class": "box-headline flex-align-center"}
+        )
         for team in team_names:
             team = team.find("a")
             team_url = team.get("href")
@@ -125,10 +134,13 @@ class CSGOMatch:
 
         lineup_table = lineup.find("table")
 
-        data = [[td.a['href'] if td.find('a') else
-                 ''.join(td.stripped_strings)
-                 for td in row.find_all('td')]
-                for row in lineup_table.find_all('tr')]
+        data = [
+            [
+                td.a["href"] if td.find("a") else "".join(td.stripped_strings)
+                for td in row.find_all("td")
+            ]
+            for row in lineup_table.find_all("tr")
+        ]
 
         for index, roster in enumerate(data):
             teams[index] = {**teams[index], **{"roster": roster}}
@@ -155,7 +167,7 @@ class CSGOMatch:
                 text = span.text
                 if text == "Map":
                     # the value after map is name of the map
-                    map_name = info_contents[index+1]
+                    map_name = info_contents[index + 1]
         link = self.details_link
         game = CSGOGame(self.c, link, map_name, int(site_game_id))
         return game
@@ -169,9 +181,9 @@ class CSGOMatch:
         games = []
         for a in maps.find_all("a"):
             link = a.get("href")
-            map_div = a.find("div", {
-                "class":
-                    "stats-match-map-result-mapname dynamic-map-name-full"})
+            map_div = a.find(
+                "div", {"class": "stats-match-map-result-mapname dynamic-map-name-full"}
+            )
             if "mapstatsid" in link:
                 site_game_id = parse_number(link)
                 map_name = map_div.text

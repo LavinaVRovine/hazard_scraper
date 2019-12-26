@@ -1,10 +1,11 @@
 import pandas as pd
 import bs4 as bs
+
 # from dataclasses import dataclass
 from helpers.helpers import parse_number
 
-pd.set_option('display.width', 1000)
-pd.set_option('display.max_columns', 50)
+pd.set_option("display.width", 1000)
+pd.set_option("display.max_columns", 50)
 
 BASE_URL = "https://www.hltv.org"
 
@@ -48,7 +49,7 @@ class CSGOGame:
     @staticmethod
     def format_breakdown(breakdown_info):
         """now gets only totals, dont know what to do with rest"""
-        totals = breakdown_info.text[:breakdown_info.text.find("(")]
+        totals = breakdown_info.text[: breakdown_info.text.find("(")]
         return totals.strip()
 
     @staticmethod
@@ -100,8 +101,12 @@ class CSGOGame:
 
         team_name = team_info.find("a").text
         team_is_winner, team_score = self.is_winner(team_info)
-        return {"name": team_name, "winner": team_is_winner,
-                "score": team_score, "team_id": team_id}
+        return {
+            "name": team_name,
+            "winner": team_is_winner,
+            "score": team_score,
+            "team_id": team_id,
+        }
 
     def parse_game_info(self):
         """
@@ -129,18 +134,19 @@ class CSGOGame:
 
 
 # wanted to try dataclasses:0
-#@dataclass()
+# @dataclass()
 class Team:
     """
     Represents team participating in a game
     """
 
-    def __init__(self, name ,winner, score, team_id, player_stats=None):
+    def __init__(self, name, winner, score, team_id, player_stats=None):
         self.name = name
         self.winner = winner
         self.score = score
         self.team_id = team_id
         self.player_stats = player_stats
+
     # name: str
     # winner: bool
     # score: int
@@ -181,8 +187,8 @@ class Team:
         for c in ["K", "HS", "A", "F", "KAST"]:
             if c not in df.columns:
                 df[c] = None
-        df[["K", "HS", "A", "F", "KAST"]] =\
-            df[["K", "HS", "A", "F", "KAST"]].apply(
-                pd.to_numeric, errors="coerce")
+        df[["K", "HS", "A", "F", "KAST"]] = df[["K", "HS", "A", "F", "KAST"]].apply(
+            pd.to_numeric, errors="coerce"
+        )
         df["KAST"] = df["KAST"] / 100
         return df

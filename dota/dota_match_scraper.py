@@ -1,14 +1,15 @@
 import pandas as pd
 import bs4 as bs
 
-pd.set_option('display.width', 1000)
-pd.set_option('display.max_columns', 50)
+pd.set_option("display.width", 1000)
+pd.set_option("display.max_columns", 50)
 
 
 class DotaMatch:
     """
     Representation of dota page of a Match
     """
+
     def __init__(self, soup):
         """
         sadly, starts whole logic - parses basic info, stats etc.
@@ -17,8 +18,7 @@ class DotaMatch:
         """
         self.soup = soup
         # list of teams with base info
-        self.teams =\
-            self.get_teams(self.soup.find("div", {"class": "team-results"}))
+        self.teams = self.get_teams(self.soup.find("div", {"class": "team-results"}))
         self.team_names = [t[0] for t in self.teams]
         # dict with League, Game Mode, Region etc.
         self.basic_match_info = self.parse_match_header()
@@ -37,13 +37,19 @@ class DotaMatch:
 
         for index, team in enumerate(self.team_names):
             if index == 0:
-                self.t1 = {"name": team, "winner": self.teams[index][1],
-                           "stats": self.teams_stats[team],
-                           "link": self.teams[index][2]}
+                self.t1 = {
+                    "name": team,
+                    "winner": self.teams[index][1],
+                    "stats": self.teams_stats[team],
+                    "link": self.teams[index][2],
+                }
             else:
-                self.t2 = {"name": team, "winner": self.teams[index][1],
-                           "stats": self.teams_stats[team],
-                           "link": self.teams[index][2]}
+                self.t2 = {
+                    "name": team,
+                    "winner": self.teams[index][1],
+                    "stats": self.teams_stats[team],
+                    "link": self.teams[index][2],
+                }
 
     def parse_match_header(self) -> dict:
         """
@@ -77,7 +83,7 @@ class DotaMatch:
             else:
                 name = th.text
             nvm.append(name)
-        for blocked_elem in ['Overview', 'Farm', 'Damage', 'Items']:
+        for blocked_elem in ["Overview", "Farm", "Damage", "Items"]:
             nvm.remove(blocked_elem)
         # rename header
         if nvm[4] == "":
@@ -87,19 +93,19 @@ class DotaMatch:
     @staticmethod
     def parse_player_perf_table(trow):
         row_vals = []
-        for td in trow.find_all('td'):
+        for td in trow.find_all("td"):
 
-            if td.find('a'):
-                smth = (td.a['href'])
+            if td.find("a"):
+                smth = td.a["href"]
             elif td.find("i"):
                 if td.i.get("oldtitle"):
-                    smth = (td.i["oldtitle"])
+                    smth = td.i["oldtitle"]
                 elif td.i.get("title"):
                     smth = td.i.get("title")
                 else:
                     print(f"dunno {td}")
             else:
-                smth = ''.join(td.stripped_strings)
+                smth = "".join(td.stripped_strings)
             row_vals.append(smth)
         return row_vals
 
@@ -112,10 +118,9 @@ class DotaMatch:
         random_list = []
         headers = self.parse_table_headers(table.find("thead"))
         body = table.find("tbody")
-        for row in body.find_all('tr'):
+        for row in body.find_all("tr"):
             row_vals = self.parse_player_perf_table(row)
-            assert len(row_vals) == len(headers),\
-                f"Invalid parsing of headers or body"
+            assert len(row_vals) == len(headers), f"Invalid parsing of headers or body"
             random_list.append(row_vals)
         return pd.DataFrame(random_list, columns=headers)
 
@@ -151,12 +156,13 @@ class DotaMatch:
         team_df = magic_df.copy()
         team_df.drop(
             ["", "Items in inventory at the end of the match", "Player"],
-            axis=1, inplace=True
+            axis=1,
+            inplace=True,
         )
         # remove some stupidly named cols
         for col in team_df.copy().columns:
             if "(" in col:
-                no_name = col[:col.find("(")-1]
+                no_name = col[: col.find("(") - 1]
                 team_df.rename({col: no_name}, axis=1, inplace=True)
 
         # change data format
@@ -164,12 +170,19 @@ class DotaMatch:
             if col == "Hero":
                 continue
             team_df[col] = team_df[col].str.replace("k", "000")
-        for col in ["Kills", "Deaths", "Assists", "Net Worth", "Last Hits",
-                    "Denies", "Gold earned per minute",
-                    "Experience earned per minute",
-                    "Damage dealt to enemy Heroes",
-                    "Healing provided to friendly Heroes",
-                    "Damage dealt to enemy buildings"]:
+        for col in [
+            "Kills",
+            "Deaths",
+            "Assists",
+            "Net Worth",
+            "Last Hits",
+            "Denies",
+            "Gold earned per minute",
+            "Experience earned per minute",
+            "Damage dealt to enemy Heroes",
+            "Healing provided to friendly Heroes",
+            "Damage dealt to enemy buildings",
+        ]:
             team_df[col] = pd.to_numeric(team_df[col], errors="coerce")
 
         return team_df
@@ -194,9 +207,9 @@ class DotaMatch:
         return output
 
 
-
 if __name__ == "__main__":
     from scrape_helpers import Sess
+
     resp = Sess().get("https://www.dotabuff.com/matches/4189901985")
 
     match = DotaMatch(bs.BeautifulSoup(resp.text, "html5lib"))
